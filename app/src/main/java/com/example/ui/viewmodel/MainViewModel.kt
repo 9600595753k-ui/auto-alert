@@ -118,6 +118,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val appLockEnabled: StateFlow<Boolean> = userPrefs.appLockEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
+    val autoPayAlertsEnabled: StateFlow<Boolean> = userPrefs.autoPayAlertsEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
+    val fraudAlertsEnabled: StateFlow<Boolean> = userPrefs.fraudAlertsEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
+    val highValueAlertsEnabled: StateFlow<Boolean> = userPrefs.highValueAlertsEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
+    val highValueThresholdRupees: StateFlow<Long> = userPrefs.highValueThresholdRupees
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 5000L)
+
+    val cloudAutoSyncEnabled: StateFlow<Boolean> = userPrefs.cloudAutoSyncEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
     // SMS Scanning & Sync states
     val isScanningSms = MutableStateFlow(false)
     val lastScanSummary = MutableStateFlow<ScanSummary?>(null)
@@ -508,6 +523,36 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun setAutoPayAlertsEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            userPrefs.setAutoPayAlertsEnabled(enabled)
+        }
+    }
+
+    fun setFraudAlertsEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            userPrefs.setFraudAlertsEnabled(enabled)
+        }
+    }
+
+    fun setHighValueAlertsEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            userPrefs.setHighValueAlertsEnabled(enabled)
+        }
+    }
+
+    fun setHighValueThreshold(threshold: Long) {
+        viewModelScope.launch {
+            userPrefs.setHighValueThreshold(threshold)
+        }
+    }
+
+    fun setCloudAutoSyncEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            userPrefs.setCloudAutoSyncEnabled(enabled)
+        }
+    }
+
     fun testVoiceReminder(merchant: String, amountPaise: Long, lang: String = "en", rate: Float = 1.0f) {
         voiceAlertManager.speakReminder(
             merchantName = merchant,
@@ -585,6 +630,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 viewModelScope.launch {
                     firestoreRepo.saveUserProfile(user)
                     syncAllToCloud()
+                    userPrefs.setOnboardingCompleted(true)
                 }
             },
             onError = onError

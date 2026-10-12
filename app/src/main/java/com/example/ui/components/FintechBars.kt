@@ -7,6 +7,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Autorenew
 import androidx.compose.material.icons.filled.Equalizer
+import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
@@ -125,10 +126,11 @@ fun FintechBottomBar(
             val isSelected = currentScreen.route == screen.route
             val icon = when (screen) {
                 Screen.Dashboard -> Icons.Default.AccountBalanceWallet
-                Screen.Passbook -> Icons.Default.AccountBalanceWallet
+                Screen.Passbook -> Icons.Default.ReceiptLong
                 Screen.Insights -> Icons.Default.Equalizer
                 Screen.Payments -> Icons.Default.Autorenew
                 Screen.FraudShield -> Icons.Default.Security
+                Screen.Settings -> Icons.Default.Settings
                 else -> Icons.Default.AccountBalanceWallet
             }
 

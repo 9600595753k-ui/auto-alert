@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">AutoPay Alert</string>
+    <string name="default_web_client_id">718433091609-jf9bipr0a5n1jh7ga6n911roem0bbi2e.apps.googleusercontent.com</string>
 </resources>

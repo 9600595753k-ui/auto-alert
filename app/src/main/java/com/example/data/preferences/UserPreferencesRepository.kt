@@ -25,6 +25,11 @@ class UserPreferencesRepository(private val context: Context) {
         val APP_PIN = stringPreferencesKey("app_pin")
         val DEMO_DATA_LOADED = booleanPreferencesKey("demo_data_loaded")
         val SELECTED_PERIOD = stringPreferencesKey("selected_period")
+        val AUTOPAY_ALERTS_ENABLED = booleanPreferencesKey("autopay_alerts_enabled")
+        val FRAUD_ALERTS_ENABLED = booleanPreferencesKey("fraud_alerts_enabled")
+        val HIGH_VALUE_ALERTS_ENABLED = booleanPreferencesKey("high_value_alerts_enabled")
+        val HIGH_VALUE_THRESHOLD = androidx.datastore.preferences.core.longPreferencesKey("high_value_threshold")
+        val CLOUD_AUTO_SYNC_ENABLED = booleanPreferencesKey("cloud_auto_sync_enabled")
     }
 
     val isOnboardingCompleted: Flow<Boolean> = context.dataStore.data.map { prefs ->
@@ -61,6 +66,26 @@ class UserPreferencesRepository(private val context: Context) {
 
     val selectedPeriod: Flow<String> = context.dataStore.data.map { prefs ->
         prefs[PreferencesKeys.SELECTED_PERIOD] ?: "THIS_MONTH"
+    }
+
+    val autoPayAlertsEnabled: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[PreferencesKeys.AUTOPAY_ALERTS_ENABLED] ?: true
+    }
+
+    val fraudAlertsEnabled: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[PreferencesKeys.FRAUD_ALERTS_ENABLED] ?: true
+    }
+
+    val highValueAlertsEnabled: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[PreferencesKeys.HIGH_VALUE_ALERTS_ENABLED] ?: true
+    }
+
+    val highValueThresholdRupees: Flow<Long> = context.dataStore.data.map { prefs ->
+        prefs[PreferencesKeys.HIGH_VALUE_THRESHOLD] ?: 5000L
+    }
+
+    val cloudAutoSyncEnabled: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[PreferencesKeys.CLOUD_AUTO_SYNC_ENABLED] ?: true
     }
 
     suspend fun setOnboardingCompleted(completed: Boolean) {
@@ -112,6 +137,36 @@ class UserPreferencesRepository(private val context: Context) {
     suspend fun setSelectedPeriod(period: String) {
         context.dataStore.edit { prefs ->
             prefs[PreferencesKeys.SELECTED_PERIOD] = period
+        }
+    }
+
+    suspend fun setAutoPayAlertsEnabled(enabled: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[PreferencesKeys.AUTOPAY_ALERTS_ENABLED] = enabled
+        }
+    }
+
+    suspend fun setFraudAlertsEnabled(enabled: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[PreferencesKeys.FRAUD_ALERTS_ENABLED] = enabled
+        }
+    }
+
+    suspend fun setHighValueAlertsEnabled(enabled: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[PreferencesKeys.HIGH_VALUE_ALERTS_ENABLED] = enabled
+        }
+    }
+
+    suspend fun setHighValueThreshold(threshold: Long) {
+        context.dataStore.edit { prefs ->
+            prefs[PreferencesKeys.HIGH_VALUE_THRESHOLD] = threshold
+        }
+    }
+
+    suspend fun setCloudAutoSyncEnabled(enabled: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[PreferencesKeys.CLOUD_AUTO_SYNC_ENABLED] = enabled
         }
     }
 }

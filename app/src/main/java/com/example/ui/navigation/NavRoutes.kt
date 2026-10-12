@@ -16,5 +16,5 @@ val BOTTOM_NAV_ITEMS = listOf(
     Screen.Passbook,
     Screen.Insights,
     Screen.Payments,
-    Screen.FraudShield
+    Screen.Settings
 )

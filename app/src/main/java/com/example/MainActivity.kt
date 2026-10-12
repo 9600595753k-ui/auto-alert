@@ -93,6 +93,10 @@ fun AutoPayAlertApp(viewModel: MainViewModel) {
     val lastScanSummary by viewModel.lastScanSummary.collectAsStateWithLifecycle()
     val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
     val isCloudSyncing by viewModel.isCloudSyncing.collectAsStateWithLifecycle()
+    val autoPayAlertsEnabled by viewModel.autoPayAlertsEnabled.collectAsStateWithLifecycle()
+    val fraudAlertsEnabled by viewModel.fraudAlertsEnabled.collectAsStateWithLifecycle()
+    val highValueAlertsEnabled by viewModel.highValueAlertsEnabled.collectAsStateWithLifecycle()
+    val cloudAutoSyncEnabled by viewModel.cloudAutoSyncEnabled.collectAsStateWithLifecycle()
 
     val searchQuery by viewModel.passbookSearchQuery.collectAsStateWithLifecycle()
     val selectedType by viewModel.passbookSelectedType.collectAsStateWithLifecycle()
@@ -153,7 +157,14 @@ fun AutoPayAlertApp(viewModel: MainViewModel) {
     }
 
     if (!isOnboardingCompleted) {
+        val activity = context as? android.app.Activity
         OnboardingScreen(
+            currentUser = currentUser,
+            onGoogleSignIn = {
+                activity?.let { act ->
+                    viewModel.signInWithGoogle(act) { _ -> }
+                }
+            },
             onCompleteOnboarding = { enableDemoData ->
                 if (enableDemoData) {
                     viewModel.loadDemoData()
@@ -161,7 +172,9 @@ fun AutoPayAlertApp(viewModel: MainViewModel) {
                     viewModel.scanDeviceSmsInbox(context)
                 }
                 viewModel.completeOnboarding()
-            }
+            },
+            selectedLanguage = ttsLanguage,
+            onSelectLanguage = { viewModel.setTtsLanguage(it) }
         )
     } else {
         Scaffold(
@@ -283,6 +296,10 @@ fun AutoPayAlertApp(viewModel: MainViewModel) {
                             ttsSpeechRate = ttsSpeechRate,
                             appLockEnabled = appLockEnabled,
                             isDemoDataLoaded = isDemoDataLoaded,
+                            autoPayAlertsEnabled = autoPayAlertsEnabled,
+                            fraudAlertsEnabled = fraudAlertsEnabled,
+                            highValueAlertsEnabled = highValueAlertsEnabled,
+                            cloudAutoSyncEnabled = cloudAutoSyncEnabled,
                             currentUser = currentUser,
                             isCloudSyncing = isCloudSyncing,
                             onGoogleSignIn = {
@@ -300,6 +317,10 @@ fun AutoPayAlertApp(viewModel: MainViewModel) {
                                 viewModel.testVoiceReminder("Netflix AutoPay", 64900L, lang, rate)
                             },
                             onToggleAppLock = { viewModel.setAppLock(it, "1234") },
+                            onToggleAutoPayAlerts = { viewModel.setAutoPayAlertsEnabled(it) },
+                            onToggleFraudAlerts = { viewModel.setFraudAlertsEnabled(it) },
+                            onToggleHighValueAlerts = { viewModel.setHighValueAlertsEnabled(it) },
+                            onToggleCloudAutoSync = { viewModel.setCloudAutoSyncEnabled(it) },
                             onLoadDemoData = { viewModel.loadDemoData() },
                             onClearAllData = { viewModel.clearAllData() },
                             onExportCsv = { uri ->
