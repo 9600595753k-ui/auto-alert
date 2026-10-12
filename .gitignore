@@ -14,5 +14,8 @@
 .externalNativeBuild
 .cxx
 local.properties
-.env
 debug.keystore
+
+# Ensure release/debug prebuilt APK in /apk is tracked for GitHub
+!/apk/
+!/apk/*.apk
