@@ -2,9 +2,9 @@ name: Build Android APK
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ '**' ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ '**' ]
   workflow_dispatch:
 
 jobs:
@@ -20,22 +20,42 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: gradle
 
-      - name: Prepare .env configuration
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Prepare Keystore & Environment Secrets
         run: |
+          # Create .env placeholder for secrets gradle plugin
           touch .env
           echo "# AutoPay Alert Environment" > .env
 
+          # Restore debug.keystore required by app/build.gradle.kts signingConfigs
+          if [ -f "debug.keystore.base64" ]; then
+            base64 -d debug.keystore.base64 > debug.keystore
+          else
+            keytool -genkey -v -keystore debug.keystore -alias androiddebugkey -storepass android -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          fi
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
       - name: Make Gradle Wrapper Executable
-        run: chmod +x gradlew || true
+        run: chmod +x gradlew
 
       - name: Build Debug APK with Gradle
-        run: ./gradlew assembleDebug || gradle assembleDebug
+        run: ./gradlew assembleDebug --stacktrace
+        env:
+          GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx3072m -XX:MaxMetaspaceSize=1g"
+
+      - name: Copy APK to Output Folder
+        run: |
+          mkdir -p build-apks
+          cp app/build/outputs/apk/debug/app-debug.apk build-apks/AutoPayAlert-debug.apk
 
       - name: Upload Debug APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: AutoPayAlert-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: warn
+          path: build-apks/AutoPayAlert-debug.apk
+          if-no-files-found: error
