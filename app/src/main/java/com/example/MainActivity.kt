@@ -1,23 +1,35 @@
 package com.example
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.local.entity.RecurringPaymentEntity
 import com.example.data.local.entity.TransactionEntity
@@ -77,11 +89,52 @@ fun AutoPayAlertApp(viewModel: MainViewModel) {
     val ttsLanguage by viewModel.ttsLanguage.collectAsStateWithLifecycle()
     val ttsSpeechRate by viewModel.ttsSpeechRate.collectAsStateWithLifecycle()
     val appLockEnabled by viewModel.appLockEnabled.collectAsStateWithLifecycle()
+    val isScanningSms by viewModel.isScanningSms.collectAsStateWithLifecycle()
+    val lastScanSummary by viewModel.lastScanSummary.collectAsStateWithLifecycle()
 
     val searchQuery by viewModel.passbookSearchQuery.collectAsStateWithLifecycle()
     val selectedType by viewModel.passbookSelectedType.collectAsStateWithLifecycle()
     val selectedCategory by viewModel.passbookSelectedCategory.collectAsStateWithLifecycle()
     val selectedBank by viewModel.passbookSelectedBank.collectAsStateWithLifecycle()
+
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var hasSmsPermission by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.RECEIVE_SMS) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val readGranted = permissions[Manifest.permission.READ_SMS] == true
+        val receiveGranted = permissions[Manifest.permission.RECEIVE_SMS] == true
+        val anyGranted = readGranted || receiveGranted
+        hasSmsPermission = anyGranted
+
+        if (anyGranted) {
+            viewModel.scanDeviceSmsInbox(context)
+        }
+    }
+
+    // Automatically request SMS runtime permissions on launch if not yet granted
+    LaunchedEffect(Unit) {
+        val readCheck = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_SMS)
+        val receiveCheck = ContextCompat.checkSelfPermission(context, Manifest.permission.RECEIVE_SMS)
+        if (readCheck != PackageManager.PERMISSION_GRANTED || receiveCheck != PackageManager.PERMISSION_GRANTED) {
+            val perms = mutableListOf(Manifest.permission.READ_SMS, Manifest.permission.RECEIVE_SMS)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                perms.add(Manifest.permission.POST_NOTIFICATIONS)
+            }
+            permissionLauncher.launch(perms.toTypedArray())
+        } else {
+            hasSmsPermission = true
+            if (recentTransactions.isEmpty()) {
+                viewModel.scanDeviceSmsInbox(context)
+            }
+        }
+    }
 
     // Navigation and Sheet states
     var currentScreen by remember { mutableStateOf<Screen>(Screen.Dashboard) }
@@ -102,6 +155,8 @@ fun AutoPayAlertApp(viewModel: MainViewModel) {
             onCompleteOnboarding = { enableDemoData ->
                 if (enableDemoData) {
                     viewModel.loadDemoData()
+                } else {
+                    viewModel.scanDeviceSmsInbox(context)
                 }
                 viewModel.completeOnboarding()
             }
@@ -145,9 +200,12 @@ fun AutoPayAlertApp(viewModel: MainViewModel) {
                             selectedPeriod = selectedPeriod,
                             unresolvedFraudCount = unresolvedFraudCount,
                             isDemoDataLoaded = isDemoDataLoaded,
+                            isScanningSms = isScanningSms,
+                            lastScanSummary = lastScanSummary,
                             onPeriodSelected = { viewModel.setSelectedPeriod(it) },
                             onToggleHideAmounts = { viewModel.toggleHideAmounts() },
                             onLoadDemoData = { viewModel.loadDemoData() },
+                            onScanSmsRequested = { viewModel.scanDeviceSmsInbox(context) },
                             onOpenAddTransaction = { showManualAddModal = true },
                             onNavigateToPassbook = { currentScreen = Screen.Passbook },
                             onNavigateToPayments = { currentScreen = Screen.Payments },
@@ -175,7 +233,8 @@ fun AutoPayAlertApp(viewModel: MainViewModel) {
                             onCategorySelected = { viewModel.passbookSelectedCategory.value = it },
                             onBankSelected = { viewModel.passbookSelectedBank.value = it },
                             onTransactionClicked = { selectedTransactionForDetail = it },
-                            onOpenAddTransaction = { showManualAddModal = true }
+                            onOpenAddTransaction = { showManualAddModal = true },
+                            onScanSmsRequested = { viewModel.scanDeviceSmsInbox(context) }
                         )
                     }
 

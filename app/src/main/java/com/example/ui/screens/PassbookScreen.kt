@@ -23,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -68,6 +69,7 @@ fun PassbookScreen(
     onBankSelected: (String) -> Unit,
     onTransactionClicked: (TransactionEntity) -> Unit,
     onOpenAddTransaction: () -> Unit,
+    onScanSmsRequested: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
@@ -98,39 +100,62 @@ fun PassbookScreen(
         ) {
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Search Bar
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = onSearchQueryChange,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("passbook_search_field"),
-                placeholder = { Text("Search by merchant, bank, notes...", fontSize = 14.sp) },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = "Search",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                },
-                trailingIcon = {
-                    if (searchQuery.isNotEmpty()) {
-                        IconButton(onClick = { onSearchQueryChange("") }) {
-                            Icon(
-                                imageVector = Icons.Default.Clear,
-                                contentDescription = "Clear search",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+            // Search Bar & Sync SMS Button
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = onSearchQueryChange,
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("passbook_search_field"),
+                    placeholder = { Text("Search by merchant, bank, notes...", fontSize = 14.sp) },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = "Search",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { onSearchQueryChange("") }) {
+                                Icon(
+                                    imageVector = Icons.Default.Clear,
+                                    contentDescription = "Clear search",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
-                    }
-                },
-                shape = RoundedCornerShape(14.dp),
-                singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = ElectricCyan,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                    },
+                    shape = RoundedCornerShape(14.dp),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = ElectricCyan,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                    )
                 )
-            )
+
+                if (onScanSmsRequested != null) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    IconButton(
+                        onClick = onScanSmsRequested,
+                        modifier = Modifier
+                            .size(52.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .testTag("passbook_sync_sms_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Sync,
+                            contentDescription = "Sync Device SMS",
+                            tint = ElectricCyan
+                        )
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.height(10.dp))
 

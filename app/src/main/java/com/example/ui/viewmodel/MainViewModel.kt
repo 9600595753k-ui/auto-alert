@@ -24,6 +24,8 @@ import com.example.fraud.FraudDetector
 import com.example.recurring.RecurringDetector
 import com.example.sms.parser.BankSmsParser
 import com.example.sms.parser.ParsedSmsResult
+import com.example.sms.scanner.ScanSummary
+import com.example.sms.scanner.SmsInboxScanner
 import com.example.voice.VoiceAlertManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -109,6 +111,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     val appLockEnabled: StateFlow<Boolean> = userPrefs.appLockEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    // SMS Scanning & Sync states
+    val isScanningSms = MutableStateFlow(false)
+    val lastScanSummary = MutableStateFlow<ScanSummary?>(null)
 
     // Filter states for Passbook
     val passbookSearchQuery = MutableStateFlow("")
@@ -250,6 +256,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             fraudRepo.insertAll(DemoDataGenerator.generateSampleFraudAlerts())
             budgetRepo.insertAll(DemoDataGenerator.generateSampleBudgets())
             userPrefs.setDemoDataLoaded(true)
+        }
+    }
+
+    fun scanDeviceSmsInbox(context: Context) {
+        viewModelScope.launch {
+            isScanningSms.value = true
+            try {
+                val summary = SmsInboxScanner.scanAndSyncInbox(context)
+                lastScanSummary.value = summary
+                triggerRecurringDetection()
+            } catch (e: Exception) {
+                // Handled gracefully
+            } finally {
+                isScanningSms.value = false
+            }
         }
     }
 

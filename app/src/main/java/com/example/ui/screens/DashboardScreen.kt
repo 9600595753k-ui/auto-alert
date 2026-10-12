@@ -47,8 +47,18 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Sync
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import com.example.core.util.CurrencyUtils
 import com.example.data.local.entity.TransactionEntity
+import com.example.sms.scanner.ScanSummary
 import com.example.ui.components.MonthlySpendingBarChart
 import com.example.ui.components.TransactionRow
 import com.example.ui.navigation.Screen
@@ -67,9 +77,12 @@ fun DashboardScreen(
     selectedPeriod: String,
     unresolvedFraudCount: Int,
     isDemoDataLoaded: Boolean,
+    isScanningSms: Boolean,
+    lastScanSummary: ScanSummary?,
     onPeriodSelected: (String) -> Unit,
     onToggleHideAmounts: () -> Unit,
     onLoadDemoData: () -> Unit,
+    onScanSmsRequested: () -> Unit,
     onOpenAddTransaction: () -> Unit,
     onNavigateToPassbook: () -> Unit,
     onNavigateToPayments: () -> Unit,
@@ -108,6 +121,126 @@ fun DashboardScreen(
                             selectedLabelColor = ElectricCyan
                         )
                     )
+                }
+            }
+        }
+
+        // Real SMS Inbox Sync Card
+        item {
+            val context = LocalContext.current
+            val smsPermissionLauncher = rememberLauncherForActivityResult(
+                contract = ActivityResultContracts.RequestMultiplePermissions()
+            ) { perms ->
+                val granted = perms[Manifest.permission.READ_SMS] == true || perms[Manifest.permission.RECEIVE_SMS] == true
+                if (granted) {
+                    onScanSmsRequested()
+                }
+            }
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("sms_sync_card"),
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(38.dp)
+                                    .clip(CircleShape)
+                                    .background(ElectricCyan.copy(alpha = 0.15f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Sync,
+                                    contentDescription = "Sync SMS",
+                                    tint = ElectricCyan,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = "Auto Debit & Credit Sync",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "Real bank SMS parsing & auto-categorization",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        Button(
+                            onClick = {
+                                val hasReadSms = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED
+                                if (hasReadSms) {
+                                    onScanSmsRequested()
+                                } else {
+                                    smsPermissionLauncher.launch(
+                                        arrayOf(Manifest.permission.READ_SMS, Manifest.permission.RECEIVE_SMS)
+                                    )
+                                }
+                            },
+                            enabled = !isScanningSms,
+                            colors = ButtonDefaults.buttonColors(containerColor = ElectricCyan, contentColor = Color.Black),
+                            modifier = Modifier.testTag("scan_sms_inbox_button")
+                        ) {
+                            Text(
+                                text = if (isScanningSms) "Scanning..." else "Scan Inbox",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
+
+                    if (isScanningSms) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        LinearProgressIndicator(
+                            modifier = Modifier.fillMaxWidth(),
+                            color = ElectricCyan
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Reading SMS messages and categorizing transactions...",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = ElectricCyan
+                        )
+                    } else if (lastScanSummary != null) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(EmeraldGreen.copy(alpha = 0.1f))
+                                .padding(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = "Scan complete",
+                                tint = EmeraldGreen,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Inbox Synced: Scanned ${lastScanSummary.totalScanned} SMS • Found ${lastScanSummary.transactionsFound} transactions (${lastScanSummary.debitsCount} Debits, ${lastScanSummary.creditsCount} Credits). ${lastScanSummary.newAdded} newly added.",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = EmeraldGreen,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
                 }
             }
         }
