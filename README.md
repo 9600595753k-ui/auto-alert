@@ -18,6 +18,15 @@ The compiled debug APK is prebuilt and committed directly to this repository:
 
 ---
 
+## ⚙️ GitHub Actions Workflows
+
+The repository includes three automated workflows under `.github/workflows/`:
+1. **`build-apk.yml`**: Automatically builds and uploads `AutoPayAlert-debug.apk` as a downloadable artifact on every push and pull request.
+2. **`release.yml`**: Automatically builds the APK and creates an official **GitHub Release** with the APK attached as a release asset whenever a version tag (e.g. `v1.0.0`) is pushed or manually triggered via "Run workflow".
+3. **`ci.yml`**: Runs the full suite of unit and Robolectric tests and exports test results on every push.
+
+---
+
 ## 🛠️ How to Build the APK from Source
 
 ### Prerequisites
