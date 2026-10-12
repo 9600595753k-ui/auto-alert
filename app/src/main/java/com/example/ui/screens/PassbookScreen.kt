@@ -192,6 +192,22 @@ fun PassbookScreen(
                         )
                     }
                 }
+
+                // Category filters (Where I spent / Income categories)
+                if (distinctCategories.isNotEmpty()) {
+                    distinctCategories.forEach { cat ->
+                        val isSelected = selectedCategory == cat
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { onCategorySelected(if (isSelected) "ALL" else cat) },
+                            label = { Text(cat, fontSize = 12.sp) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = ElectricCyan.copy(alpha = 0.2f),
+                                selectedLabelColor = ElectricCyan
+                            )
+                        )
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(8.dp))

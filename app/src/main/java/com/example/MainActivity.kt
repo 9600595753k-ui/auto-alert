@@ -338,8 +338,15 @@ fun AutoPayAlertApp(viewModel: MainViewModel) {
                 transaction = tx,
                 hideAmounts = hideAmounts,
                 onDismiss = { selectedTransactionForDetail = null },
+                onSaveTransaction = { updatedTx ->
+                    viewModel.updateTransaction(updatedTx)
+                    selectedTransactionForDetail = updatedTx
+                },
                 onToggleExclude = { viewModel.toggleExcludeTransaction(it) },
-                onDelete = { viewModel.deleteTransaction(it) },
+                onDelete = {
+                    viewModel.deleteTransaction(it)
+                    selectedTransactionForDetail = null
+                },
                 onUpdateNotes = { entity, notes ->
                     viewModel.updateTransaction(entity.copy(notes = notes))
                 }

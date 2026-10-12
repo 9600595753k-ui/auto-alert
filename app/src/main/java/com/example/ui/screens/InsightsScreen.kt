@@ -133,7 +133,7 @@ fun InsightsScreen(
             }
         }
 
-        // Category Breakdown Card
+        // Spending & Income Category Breakdown Card
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -142,10 +142,10 @@ fun InsightsScreen(
             ) {
                 Column(modifier = Modifier.padding(18.dp)) {
                     Text(
-                        text = "Category Breakdown",
+                        text = "Where I Spent (Expense Breakdown)",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = CoralRed
                     )
                     Spacer(modifier = Modifier.height(12.dp))
 
@@ -159,6 +159,31 @@ fun InsightsScreen(
                         metrics.categoryBreakdown.forEach { catSpend ->
                             CategoryProgressRow(
                                 categorySpend = catSpend,
+                                hideAmounts = hideAmounts
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    Text(
+                        text = "Income Sources (Where Money Came From)",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = EmeraldGreen
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    if (metrics.incomeBreakdown.isEmpty()) {
+                        Text(
+                            text = "No income transactions recorded yet in this period",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        metrics.incomeBreakdown.forEach { incSpend ->
+                            CategoryProgressRow(
+                                categorySpend = incSpend,
                                 hideAmounts = hideAmounts
                             )
                         }

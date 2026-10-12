@@ -16,6 +16,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
@@ -245,12 +247,18 @@ fun TransactionDetailSheet(
     transaction: TransactionEntity,
     hideAmounts: Boolean,
     onDismiss: () -> Unit,
+    onSaveTransaction: ((TransactionEntity) -> Unit)? = null,
     onToggleExclude: (TransactionEntity) -> Unit,
     onDelete: (TransactionEntity) -> Unit,
-    onUpdateNotes: (TransactionEntity, String) -> Unit
+    onUpdateNotes: (TransactionEntity, String) -> Unit = { _, _ -> }
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var editMerchantName by remember { mutableStateOf(transaction.merchant) }
+    var editCategory by remember { mutableStateOf(transaction.category) }
+    var editType by remember { mutableStateOf(transaction.type) } // "DEBIT" or "CREDIT"
     var editNotes by remember { mutableStateOf(transaction.notes ?: "") }
+    var categoryDropdownExpanded by remember { mutableStateOf(false) }
+    var showSavedBadge by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
 
     ModalBottomSheet(
@@ -270,20 +278,27 @@ fun TransactionDetailSheet(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "Transaction Details",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
+                Column {
+                    Text(
+                        text = "Review & Edit Transaction",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "Save under your own name and categorize spending/income",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 IconButton(onClick = onDismiss) {
                     Icon(Icons.Default.Close, contentDescription = "Close")
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             // Amount Header
-            val isCredit = transaction.type == "CREDIT"
+            val isCredit = editType == "CREDIT"
             val color = if (isCredit) EmeraldGreen else CoralRed
             val prefix = if (isCredit) "+ " else "- "
 
@@ -301,13 +316,13 @@ fun TransactionDetailSheet(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = transaction.merchant,
+                        text = editMerchantName.ifBlank { transaction.merchant },
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "${DateUtils.formatDateTime(transaction.timestamp)} • ${transaction.paymentMode}",
+                        text = "${DateUtils.formatDateTime(transaction.timestamp)} • ${transaction.bankName} (${transaction.accountMasked})",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -316,12 +331,193 @@ fun TransactionDetailSheet(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Review & Customization Card
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "Save Under Custom Name & Category",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = ElectricCyan
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Edit Merchant Name
+                    OutlinedTextField(
+                        value = editMerchantName,
+                        onValueChange = {
+                            editMerchantName = it
+                            showSavedBadge = false
+                        },
+                        label = { Text("Save Under Name / Payee") },
+                        placeholder = { Text("e.g. Dinner with Ramesh, Grocery, Salary") },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("edit_merchant_name_field")
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Transaction Type: Spent vs Income
+                    Text(
+                        text = "Transaction Type",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        FilterChip(
+                            selected = editType == "DEBIT",
+                            onClick = {
+                                editType = "DEBIT"
+                                showSavedBadge = false
+                            },
+                            label = { Text("Spent (Debit / Expense)") },
+                            modifier = Modifier.weight(1f)
+                        )
+                        FilterChip(
+                            selected = editType == "CREDIT",
+                            onClick = {
+                                editType = "CREDIT"
+                                showSavedBadge = false
+                            },
+                            label = { Text("Income (Credit / Inflow)") },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Category Selection
+                    Text(
+                        text = "Where I Spent / Income Category",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    ExposedDropdownMenuBox(
+                        expanded = categoryDropdownExpanded,
+                        onExpandedChange = { categoryDropdownExpanded = !categoryDropdownExpanded },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        OutlinedTextField(
+                            value = editCategory,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Category") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryDropdownExpanded) },
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor()
+                        )
+
+                        ExposedDropdownMenu(
+                            expanded = categoryDropdownExpanded,
+                            onDismissRequest = { categoryDropdownExpanded = false }
+                        ) {
+                            PRESET_CATEGORIES.forEach { category ->
+                                DropdownMenuItem(
+                                    text = { Text(category) },
+                                    onClick = {
+                                        editCategory = category
+                                        categoryDropdownExpanded = false
+                                        showSavedBadge = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Notes & Tags
+                    OutlinedTextField(
+                        value = editNotes,
+                        onValueChange = {
+                            editNotes = it
+                            showSavedBadge = false
+                        },
+                        label = { Text("Personal Notes & Tags") },
+                        placeholder = { Text("e.g. Split with Priya, Project payout") },
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Save Button
+                    Button(
+                        onClick = {
+                            val updated = transaction.copy(
+                                merchant = editMerchantName.trim().ifBlank { transaction.merchant },
+                                category = editCategory.trim().ifBlank { transaction.category },
+                                type = editType,
+                                notes = editNotes.trim().ifBlank { null }
+                            )
+                            onSaveTransaction?.invoke(updated)
+                            onUpdateNotes(updated, editNotes)
+                            showSavedBadge = true
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = ElectricCyan, contentColor = Color.Black),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("save_reviewed_transaction_button")
+                    ) {
+                        Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Save & Update Ledger", fontWeight = FontWeight.Bold)
+                    }
+
+                    if (showSavedBadge) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(EmeraldGreen.copy(alpha = 0.15f))
+                                .padding(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = EmeraldGreen,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Saved! Transaction renamed and categorized.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = EmeraldGreen,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             // Metadata fields
             val details = listOf(
-                "Category" to transaction.category,
                 "Bank Account" to "${transaction.bankName} (${transaction.accountMasked})",
-                "Status" to transaction.status,
-                "Reference ID" to (transaction.referenceNumber ?: "N/A"),
+                "Payment Mode" to transaction.paymentMode,
+                "Reference Number" to (transaction.referenceNumber ?: "N/A"),
                 "Balance After" to (transaction.balanceAfterPaise?.let { CurrencyUtils.formatPaiseToRupees(it) } ?: "Not available"),
                 "Parsing Confidence" to "${(transaction.confidenceScore * 100).toInt()}%"
             )
@@ -356,20 +552,6 @@ fun TransactionDetailSheet(
                     colors = SwitchDefaults.colors(checkedThumbColor = ElectricCyan)
                 )
             }
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // Edit Notes Field
-            OutlinedTextField(
-                value = editNotes,
-                onValueChange = {
-                    editNotes = it
-                    onUpdateNotes(transaction, it)
-                },
-                label = { Text("Notes & Tags") },
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth()
-            )
 
             Spacer(modifier = Modifier.height(18.dp))
 

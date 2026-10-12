@@ -58,6 +58,7 @@ data class DashboardMetrics(
     val activeEmisCount: Int = 0,
     val monthlyRecurringCommitmentPaise: Long = 0L,
     val categoryBreakdown: List<CategorySpend> = emptyList(),
+    val incomeBreakdown: List<CategorySpend> = emptyList(),
     val topMerchants: List<Pair<String, Long>> = emptyList()
 )
 
@@ -210,10 +211,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
+        val incomeCategoryMap = mutableMapOf<String, Long>()
+        val incomeCategoryCountMap = mutableMapOf<String, Int>()
+
         for (tx in periodTxs) {
             if (tx.status == "COMPLETED" && !tx.isExcluded) {
                 if (tx.type == "CREDIT") {
                     totalIncome += tx.amountPaise
+                    incomeCategoryMap[tx.category] = (incomeCategoryMap[tx.category] ?: 0L) + tx.amountPaise
+                    incomeCategoryCountMap[tx.category] = (incomeCategoryCountMap[tx.category] ?: 0) + 1
                 } else if (tx.type == "DEBIT") {
                     totalExpense += tx.amountPaise
                     categoryMap[tx.category] = (categoryMap[tx.category] ?: 0L) + tx.amountPaise
@@ -229,6 +235,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 category = cat,
                 totalPaise = amount,
                 transactionCount = categoryCountMap[cat] ?: 1,
+                percentage = percentage
+            )
+        }.sortedByDescending { it.totalPaise }
+
+        val incomeBreakdown = incomeCategoryMap.map { (cat, amount) ->
+            val percentage = if (totalIncome > 0L) (amount.toFloat() / totalIncome.toFloat()) * 100f else 0f
+            CategorySpend(
+                category = cat,
+                totalPaise = amount,
+                transactionCount = incomeCategoryCountMap[cat] ?: 1,
                 percentage = percentage
             )
         }.sortedByDescending { it.totalPaise }
@@ -249,6 +265,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             activeEmisCount = activeEmis,
             monthlyRecurringCommitmentPaise = recurringCommitment,
             categoryBreakdown = categoryBreakdown,
+            incomeBreakdown = incomeBreakdown,
             topMerchants = topMerchants
         )
     }
