@@ -1,0 +1,6 @@
+{
+  "name": "AutoPay Alert",
+  "description": "Smart Money Tracker that parses bank transaction SMS, tracks recurring payments, sends reminders, and detects fraud with 100% on-device privacy.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
