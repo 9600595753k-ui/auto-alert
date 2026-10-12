@@ -91,6 +91,8 @@ fun AutoPayAlertApp(viewModel: MainViewModel) {
     val appLockEnabled by viewModel.appLockEnabled.collectAsStateWithLifecycle()
     val isScanningSms by viewModel.isScanningSms.collectAsStateWithLifecycle()
     val lastScanSummary by viewModel.lastScanSummary.collectAsStateWithLifecycle()
+    val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
+    val isCloudSyncing by viewModel.isCloudSyncing.collectAsStateWithLifecycle()
 
     val searchQuery by viewModel.passbookSearchQuery.collectAsStateWithLifecycle()
     val selectedType by viewModel.passbookSelectedType.collectAsStateWithLifecycle()
@@ -273,6 +275,7 @@ fun AutoPayAlertApp(viewModel: MainViewModel) {
                     }
 
                     Screen.Settings -> {
+                        val activity = context as? android.app.Activity
                         SettingsScreen(
                             hideAmounts = hideAmounts,
                             ttsEnabled = true,
@@ -280,6 +283,15 @@ fun AutoPayAlertApp(viewModel: MainViewModel) {
                             ttsSpeechRate = ttsSpeechRate,
                             appLockEnabled = appLockEnabled,
                             isDemoDataLoaded = isDemoDataLoaded,
+                            currentUser = currentUser,
+                            isCloudSyncing = isCloudSyncing,
+                            onGoogleSignIn = {
+                                activity?.let { act ->
+                                    viewModel.signInWithGoogle(act) { errorMsg -> }
+                                }
+                            },
+                            onGoogleSignOut = { viewModel.signOutGoogle() },
+                            onCloudSyncNow = { viewModel.syncAllToCloud() },
                             onToggleHideAmounts = { viewModel.toggleHideAmounts() },
                             onToggleTtsEnabled = { viewModel.setTtsEnabled(it) },
                             onSelectTtsLanguage = { viewModel.setTtsLanguage(it) },

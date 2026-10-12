@@ -70,6 +70,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val budgetRepo = BudgetRepository(database.budgetDao())
     val userPrefs = UserPreferencesRepository(application)
     private val voiceAlertManager = VoiceAlertManager(application)
+    val authManager = com.example.auth.AuthManager(application)
+    val firestoreRepo = com.example.data.firestore.FirestoreRepository(application)
+
+    val currentUser = authManager.currentUser
+    val isCloudSyncing = MutableStateFlow(false)
 
     // Raw reactive flows
     val allTransactions: StateFlow<List<TransactionEntity>> = transactionRepo.allActiveTransactions
@@ -555,8 +560,46 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun signInWithGoogle(activity: android.app.Activity, onError: (String) -> Unit) {
+        authManager.signInWithGoogle(
+            activity = activity,
+            scope = viewModelScope,
+            onSuccess = { user ->
+                viewModelScope.launch {
+                    firestoreRepo.saveUserProfile(user)
+                    syncAllToCloud()
+                }
+            },
+            onError = onError
+        )
+    }
+
+    fun signOutGoogle() {
+        authManager.signOut(viewModelScope)
+    }
+
+    fun syncAllToCloud() {
+        viewModelScope.launch {
+            if (currentUser.value != null) {
+                isCloudSyncing.value = true
+                try {
+                    firestoreRepo.syncAllLocalToCloud(
+                        allTransactions.value,
+                        allRecurring.value,
+                        budgets.value
+                    )
+                } catch (e: Exception) {
+                    // Handled gracefully
+                } finally {
+                    isCloudSyncing.value = false
+                }
+            }
+        }
+    }
+
     override fun onCleared() {
         super.onCleared()
         voiceAlertManager.shutdown()
+        authManager.cleanup()
     }
 }

@@ -81,6 +81,11 @@ fun SettingsScreen(
     onTestVoice: (String, Float) -> Unit,
     onToggleAppLock: (Boolean) -> Unit,
     onLoadDemoData: () -> Unit,
+    currentUser: com.google.firebase.auth.FirebaseUser? = null,
+    isCloudSyncing: Boolean = false,
+    onGoogleSignIn: () -> Unit = {},
+    onGoogleSignOut: () -> Unit = {},
+    onCloudSyncNow: () -> Unit = {},
     onClearAllData: () -> Unit,
     onExportCsv: (Uri) -> Unit,
     onBack: () -> Unit,
@@ -126,6 +131,81 @@ fun SettingsScreen(
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Google Sign-In & Cloud Sync Card
+        Card(
+            shape = RoundedCornerShape(18.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            modifier = Modifier.fillMaxWidth().testTag("google_auth_card")
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "Google Account & Cloud Backup",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "Securely backup your financial passbook, recurring mandates, and budgets to Firebase Firestore.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                if (currentUser == null) {
+                    Button(
+                        onClick = onGoogleSignIn,
+                        colors = ButtonDefaults.buttonColors(containerColor = ElectricCyan, contentColor = Color.Black),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth().testTag("sign_in_with_google_button")
+                    ) {
+                        Text("Sign in with Google", fontWeight = FontWeight.Bold)
+                    }
+                } else {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = currentUser.displayName ?: "Google User",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = currentUser.email ?: "",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = EmeraldGreen
+                            )
+                        }
+
+                        OutlinedButton(
+                            onClick = onGoogleSignOut,
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Text("Sign Out", fontSize = 12.sp)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Button(
+                        onClick = onCloudSyncNow,
+                        enabled = !isCloudSyncing,
+                        colors = ButtonDefaults.buttonColors(containerColor = EmeraldGreen, contentColor = Color.Black),
+                        modifier = Modifier.fillMaxWidth().testTag("cloud_sync_now_button")
+                    ) {
+                        Text(if (isCloudSyncing) "Syncing to Firestore..." else "Backup Passbook to Cloud Now", fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
